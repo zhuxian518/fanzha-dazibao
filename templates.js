@@ -27,6 +27,18 @@ function drawLine(ctx, text, x, y, color, strokeColor, strokeW) {
   if (strokeW) { ctx.strokeStyle = strokeColor; ctx.lineWidth = strokeW; ctx.lineJoin = 'round'; ctx.strokeText(text, x, y); }
   ctx.fillStyle = color; ctx.fillText(text, x, y);
 }
+// 单行自动缩字：超宽逐级降字号（最小 14px），保证证据长文永不溢出
+function fitLine(ctx, text, x, y, maxW, baseSize, color, weight = '900') {
+  let size = baseSize;
+  ctx.font = `${weight} ${size}px system-ui, sans-serif`;
+  while (ctx.measureText(text).width > maxW && size > 14) {
+    size -= 1;
+    ctx.font = `${weight} ${size}px system-ui, sans-serif`;
+  }
+  ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+  return size;
+}
 function drawStarburst(ctx, cx, cy, r, fill, points = 14) {
   ctx.beginPath();
   for (let i = 0; i < points * 2; i++) {
@@ -93,8 +105,8 @@ function drawPriceTag(ctx, cost, sell, y) {
 function drawFooter(ctx, evidence, y) {
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.font = '400 18px system-ui, sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(`来源：${evidence.org} ${evidence.docType} ${evidence.date || ''} · 以官方发布为准`, 375, y);
-  ctx.fillText('本卡片为公开信息聚合展示 · 遇诈骗请拨 96110', 375, y + 28);
+  ctx.fillText('本卡片为公开信息聚合展示 · 具体案件以官方发布为准', 375, y);
+  ctx.fillText('遇诈骗请拨 96110', 375, y + 28);
 }
 
 // ---------- 版式 1：紧急曝光版（红底金字大字报，默认） ----------
@@ -112,11 +124,12 @@ function drawRedBurst(ctx, v, ev) {
   ctx.beginPath(); ctx.moveTo(90, 500); ctx.lineTo(660, 500); ctx.stroke();
   if (v.money) drawPriceTag(ctx, v.money.cost, v.money.sell, 580);
   if (v.shock) drawBanner(ctx, v.shock, 655, '#FFFFFF', '#B01111', 36);
-  ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2; ctx.strokeRect(90, 750, 570, 130);
-  ctx.fillStyle = '#FFD700'; ctx.font = '900 30px system-ui, sans-serif';
-  ctx.fillText(`来源：${ev.org}`, 375, 795);
-  ctx.fillStyle = '#FFFFFF'; ctx.font = '500 24px system-ui, sans-serif';
-  ctx.fillText(`${ev.docType} · ${ev.date || ''} · ${ev.charge} · ${ev.sentence}`, 375, 843);
+  ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2; ctx.strokeRect(90, 750, 570, 150);
+  fitLine(ctx, `来源：${ev.org}`, 375, 786, 540, 28, '#FFD700');
+  // 第二行可能仍是长串 → fitLine 缩字，仍在框内
+  fitLine(ctx, `${ev.docType} ${ev.date || ''} · ${ev.charge} · ${ev.sentence}`, 375, 838, 540, 24, '#FFFFFF');
+  ctx.fillStyle = '#FFEDB0'; ctx.font = '400 18px system-ui, sans-serif';
+  ctx.fillText('搜索来源单位可查证', 375, 878);
   drawTag(ctx, '转发家族群', 520, 40, '#7A0B0B', '#FFD700');
   drawFooter(ctx, ev, 960);
 }
@@ -134,12 +147,11 @@ function drawBlackGold(ctx, v, ev) {
     ctx.fillText(`成本 ${v.money.cost} → 卖 ${v.money.sell}`, 375, 500);
   }
   if (v.shock) drawBanner(ctx, v.shock, 580, '#E24B4A', '#FFFFFF', 36);
-  ctx.fillStyle = '#2E2E2E'; ctx.fillRect(75, 720, 600, 140);
-  ctx.strokeStyle = '#E24B4A'; ctx.lineWidth = 2; ctx.strokeRect(75, 720, 600, 140);
-  ctx.fillStyle = '#E24B4A'; ctx.font = '900 28px system-ui, sans-serif';
-  ctx.fillText(`信源：${ev.org}`, 375, 765);
-  ctx.fillStyle = '#CCCCCC'; ctx.font = '400 24px system-ui, sans-serif';
-  ctx.fillText(`${ev.docType} ${ev.date || ''} ${ev.charge} ${ev.sentence}`, 375, 815);
+  ctx.fillStyle = '#2E2E2E'; ctx.fillRect(75, 710, 600, 160);
+  ctx.strokeStyle = '#E24B4A'; ctx.lineWidth = 2; ctx.strokeRect(75, 710, 600, 160);
+  fitLine(ctx, `信源：${ev.org}`, 375, 755, 570, 26, '#E24B4A');
+  fitLine(ctx, `${ev.docType} ${ev.date || ''}`, 375, 800, 570, 24, '#CCCCCC');
+  fitLine(ctx, `${ev.charge} ${ev.sentence}`, 375, 842, 570, 24, '#CCCCCC');
   drawFooter(ctx, ev, 960);
 }
 
